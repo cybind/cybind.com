@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="description" content="cybind — AI/ML Consulting, Software Development, AI Products" />
+  <meta name="theme-color" content="#030308" />
+  <title>cybind</title>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <canvas id="webgl"></canvas>
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
+
+  <div id="ambient-overlay">
+    <div id="ambient-message"></div>
+  </div>
+
+  <div id="chat-container">
+    <div id="chat-log"></div>
+    <div id="chat-input-wrap">
+      <input id="chat-input" type="text" placeholder="speak to the observer..." autocomplete="off" spellcheck="false" />
+    </div>
+  </div>
+
+  <div id="contact-reveal"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
