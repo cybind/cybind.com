@@ -30,7 +30,7 @@ export function createAnimationLoop(ctx) {
 
     // Camera orbit (spherical coordinates around origin)
     const orbitRadius = isMobile ? 8.5 : 5;
-    const autoTheta = time * (isMobile ? 0.012 : 0.06);
+    const autoTheta = time * (isMobile ? 0.012 : 0.025);
     const theta = autoTheta + mouseTracker.smoothX * 0.7;
     const phi = Math.PI * 0.5 - mouseTracker.smoothY * 0.35;
     const phiClamped = Math.max(0.3, Math.min(Math.PI - 0.3, phi));
