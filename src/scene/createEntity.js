@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import entityVert from '../shaders/entity.vert';
 import entityFrag from '../shaders/entity.frag';
 import { shapeGenerators, sequences, keywordSequences } from './shapes.js';
+import { emotionPresets } from './emotions.js';
 
 // Shape presets: each keyword category morphs the entity differently
 const shapePresets = {
@@ -56,6 +57,9 @@ function createShell(radius, detail, baseHue, morphIntensity, morphSpeed, opacit
     uStretch: { value: 0 },
     // Morph target
     uMorphProgress: { value: 0 },
+    // Emotion
+    uSaturation: { value: 0.65 },
+    uBrightness: { value: 0 },
   };
 
   const material = new THREE.ShaderMaterial({
@@ -140,6 +144,21 @@ export function createEntity(scene, isMobile) {
     holdTimer: 0,
   };
 
+  // === Emotion state ===
+  const neutral = emotionPresets.neutral;
+  const emotion = {
+    current: 'neutral',
+    intensity: 0,
+    params: { ...neutral },
+    chromaticAdd: 0,
+  };
+
+  function setEmotion(name, intensity = 1.0) {
+    if (!emotionPresets[name]) return;
+    emotion.current = name;
+    emotion.intensity = Math.min(intensity, 1.0);
+  }
+
   function smoothstep(t) {
     const ct = Math.max(0, Math.min(1, t));
     return ct * ct * (3 - 2 * ct);
@@ -186,7 +205,7 @@ export function createEntity(scene, isMobile) {
     },
   };
 
-  function react({ pulse = 0, hue = null, morphBoost = 0, shapeName = null, sequenceName = null }) {
+  function react({ pulse = 0, hue = null, morphBoost = 0, shapeName = null, sequenceName = null, emotion: emotionName = null, emotionIntensity = 0.8 }) {
     if (pulse > 0) reaction.pulseIntensity = Math.max(reaction.pulseIntensity, pulse);
     if (hue !== null) reaction.targetHueShift = hue;
     if (morphBoost > 0) reaction.morphBoost = Math.max(reaction.morphBoost, morphBoost);
@@ -198,6 +217,10 @@ export function createEntity(scene, isMobile) {
 
     if (sequenceName) {
       startSequence(sequenceName);
+    }
+
+    if (emotionName) {
+      setEmotion(emotionName, emotionIntensity);
     }
   }
 
@@ -225,6 +248,36 @@ export function createEntity(scene, isMobile) {
         shape.target = { ...shapePresets.default };
       }
     }
+
+    // === Emotion ===
+    // Decay intensity toward 0 (~3-5 second fade)
+    if (emotion.intensity > 0) {
+      emotion.intensity *= (1.0 - delta * 0.35);
+      if (emotion.intensity < 0.01) {
+        emotion.intensity = 0;
+        emotion.current = 'neutral';
+      }
+    }
+
+    // Lerp emotion params toward target (preset scaled by intensity)
+    const target = emotionPresets[emotion.current] || neutral;
+    const emotLerp = 0.04;
+    for (const key of Object.keys(neutral)) {
+      if (key === 'burstColor') continue;
+      const goalValue = neutral[key] + (target[key] - neutral[key]) * emotion.intensity;
+      emotion.params[key] += (goalValue - emotion.params[key]) * emotLerp;
+    }
+
+    // Happy pulsing: gentle scale oscillation
+    let emotionScaleOffset = emotion.params.scaleOffset;
+    if (emotion.current === 'happy' && emotion.intensity > 0.1) {
+      emotionScaleOffset += Math.sin(time * 3.0) * 0.015 * emotion.intensity;
+    }
+
+    // Surprised: quick scale pop handled naturally by high scaleOffset + decay
+
+    // Store chromatic for post-processing
+    emotion.chromaticAdd = emotion.params.chromaticAdd;
 
     // === Morph sequencer ===
     if (sequencer.active) {
@@ -272,8 +325,9 @@ export function createEntity(scene, isMobile) {
       group.rotation.x += (targetRotX - group.rotation.x) * 0.015;
     }
 
-    // Breathing
-    const breath = 1.0 + Math.sin(time * 0.4) * 0.025;
+    // Breathing (modulated by emotion breathSpeed)
+    const breathRate = 0.4 * emotion.params.breathSpeed;
+    const breath = 1.0 + Math.sin(time * breathRate) * 0.025 + emotionScaleOffset;
 
     // Update each shell
     for (let si = 0; si < shells.length; si++) {
@@ -281,9 +335,9 @@ export function createEntity(scene, isMobile) {
       u.uTime.value = time;
       u.uBreathScale.value = breath;
       u.uPulseIntensity.value = reaction.pulseIntensity;
-      u.uHueShift.value = reaction.hueShift;
-      u.uAgitation.value = reaction.agitation;
-      u.uMorphIntensity.value = baseMorphIntensity[si] + reaction.morphBoost * 0.15;
+      u.uHueShift.value = reaction.hueShift + emotion.params.hueShift;
+      u.uAgitation.value = reaction.agitation + emotion.params.agitationAdd;
+      u.uMorphIntensity.value = baseMorphIntensity[si] + reaction.morphBoost * 0.15 + emotion.params.morphBoostAdd;
 
       // Shape uniforms
       u.uSpikiness.value = shape.current.spikiness;
@@ -291,18 +345,23 @@ export function createEntity(scene, isMobile) {
       u.uNoiseFreq.value = shape.current.noiseFreq;
       u.uStretch.value = shape.current.stretch;
 
+      // Emotion color uniforms
+      u.uSaturation.value = emotion.params.saturation;
+      u.uBrightness.value = emotion.params.brightness;
+
       // Morph progress — only body shell (index 1) morphs
       u.uMorphProgress.value = si === 1 ? morphProgressSmooth : 0;
 
       if (mouseTracker) {
         u.uMouse.value.set(mouseTracker.smoothX, mouseTracker.smoothY);
-        u.uMouseInfluence.value = mouseTracker.isActive ? 1.0 : 0.0;
+        u.uMouseInfluence.value = mouseTracker.isActive ? emotion.params.mouseInfluenceMul : 0.0;
       }
     }
 
-    // Sub-rotations
-    core.mesh.rotation.x = time * 0.15;
-    core.mesh.rotation.y = time * 0.2;
+    // Sub-rotations (modulated by emotion coreSpeedMul)
+    const coreSpeed = emotion.params.coreSpeedMul;
+    core.mesh.rotation.x = time * 0.15 * coreSpeed;
+    core.mesh.rotation.y = time * 0.2 * coreSpeed;
     outer.mesh.rotation.y = -time * 0.03;
     outer.mesh.rotation.z = time * 0.02;
 
@@ -316,6 +375,11 @@ export function createEntity(scene, isMobile) {
   return {
     group, uniforms, react, update,
     playSequence: startSequence,
+    getEmotionChromatic() { return emotion.chromaticAdd; },
+    getEmotionBurstColor() {
+      const preset = emotionPresets[emotion.current];
+      return preset ? preset.burstColor : 0x00ffe0;
+    },
     updateFormation() {}, updateBlink() {}, triggerBlink() {},
   };
 }

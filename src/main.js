@@ -32,8 +32,13 @@ const audioController = createAudioController();
 const messageSystem = createMessageSystem((opts) => {
   entity.react(opts);
   if (opts.pulse > 0.4) {
-    particles.triggerBurst(0x00ffe0);
+    const burstColor = opts.emotion ? entity.getEmotionBurstColor() : 0x00ffe0;
+    particles.triggerBurst(burstColor);
     audioController.glitchBurst();
+  }
+  // Emotion-triggered burst (even at lower pulse levels)
+  if (opts.emotion && opts.pulse <= 0.4) {
+    particles.triggerBurst(entity.getEmotionBurstColor());
   }
 });
 

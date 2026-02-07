@@ -2,6 +2,7 @@ import { ambientPhases, chatResponses, defaultResponses, reactionMessages } from
 import { createTextRenderer } from './textRenderer.js';
 import { keywordShapes } from '../scene/createEntity.js';
 import { keywordSequences } from '../scene/shapes.js';
+import { keywordEmotions } from '../scene/emotions.js';
 
 const keywordHues = {
   hello: 0.48, hi: 0.48,
@@ -82,6 +83,14 @@ export function createMessageSystem(entityReact) {
     return null;
   }
 
+  function findEmotion(input) {
+    const lower = input.toLowerCase().trim();
+    for (const [keyword, emotionName] of Object.entries(keywordEmotions)) {
+      if (lower.includes(keyword)) return emotionName;
+    }
+    return null;
+  }
+
   function findResponse(keyword) {
     if (keyword && chatResponses[keyword]) {
       const responses = chatResponses[keyword];
@@ -105,14 +114,17 @@ export function createMessageSystem(entityReact) {
     const keyword = findKeyword(text);
     const shapeName = findShape(text);
     const sequenceName = findSequence(text);
+    const emotionName = findEmotion(text);
 
-    // Visual reaction + shape morph + sequence
+    // Visual reaction + shape morph + sequence + emotion
     entityReact?.({
       pulse: 0.3,
       morphBoost: 0.15,
       hue: keyword && keywordHues[keyword] !== undefined ? keywordHues[keyword] : null,
       shapeName,
       sequenceName,
+      emotion: emotionName,
+      emotionIntensity: emotionName ? 0.8 : 0,
     });
 
     state.isResponding = true;

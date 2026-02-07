@@ -3,6 +3,8 @@ uniform float uHueShift;
 uniform float uPulseIntensity;
 uniform float uBaseHue;
 uniform float uMorphProgress;
+uniform float uSaturation;
+uniform float uBrightness;
 
 varying float vDisplacement;
 varying vec3 vWorldPos;
@@ -21,8 +23,8 @@ void main() {
   hue = fract(hue);
 
   // Saturation and lightness from displacement
-  float sat = 0.65;
-  float light = 0.35 + vDisplacement * 0.25;
+  float sat = uSaturation;
+  float light = 0.35 + uBrightness + vDisplacement * 0.25;
 
   // Pulse flash (subtle)
   light += uPulseIntensity * 0.12;

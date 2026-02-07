@@ -43,7 +43,8 @@ export function createAnimationLoop(ctx) {
     // Post-processing
     postProcessing.grainUniforms.uTime.value = time;
     const pulseChromatic = entity.uniforms.uPulseIntensity.value * 0.012;
-    postProcessing.chromaticUniforms.uOffset.value = 0.002 + pulseChromatic;
+    const emotionChromatic = entity.getEmotionChromatic();
+    postProcessing.chromaticUniforms.uOffset.value = 0.002 + pulseChromatic + emotionChromatic;
 
     // Messages & triggers
     messageSystem.update(time);
