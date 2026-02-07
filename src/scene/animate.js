@@ -1,5 +1,5 @@
 export function createAnimationLoop(ctx) {
-  const { entity, particles, postProcessing, camera, mouseTracker, messageSystem, hiddenTriggers } = ctx;
+  const { entity, particles, postProcessing, camera, mouseTracker, messageSystem, hiddenTriggers, isMobile } = ctx;
   const clock = { elapsed: 0, delta: 0, last: performance.now() };
 
   function animate() {
@@ -29,7 +29,7 @@ export function createAnimationLoop(ctx) {
     particles.update(time, delta);
 
     // Camera orbit (spherical coordinates around origin)
-    const orbitRadius = 5;
+    const orbitRadius = isMobile ? 7 : 5;
     const autoTheta = time * 0.06; // slow auto-rotation
     const theta = autoTheta + mouseTracker.smoothX * 0.7;
     const phi = Math.PI * 0.5 - mouseTracker.smoothY * 0.35;

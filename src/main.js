@@ -49,6 +49,7 @@ const animate = createAnimationLoop({
   messageSystem,
   hiddenTriggers,
   audioController,
+  isMobile,
 });
 
 animate();
