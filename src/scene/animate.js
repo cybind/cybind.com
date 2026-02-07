@@ -29,8 +29,8 @@ export function createAnimationLoop(ctx) {
     particles.update(time, delta);
 
     // Camera orbit (spherical coordinates around origin)
-    const orbitRadius = isMobile ? 7 : 5;
-    const autoTheta = time * 0.06; // slow auto-rotation
+    const orbitRadius = isMobile ? 8.5 : 5;
+    const autoTheta = time * (isMobile ? 0.025 : 0.06);
     const theta = autoTheta + mouseTracker.smoothX * 0.7;
     const phi = Math.PI * 0.5 - mouseTracker.smoothY * 0.35;
     const phiClamped = Math.max(0.3, Math.min(Math.PI - 0.3, phi));
